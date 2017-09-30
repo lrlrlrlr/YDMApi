@@ -1,0 +1,67 @@
+from ctypes import *
+
+
+class YDMApi():
+    '''
+    2017年9月29日17:50
+    云打码平台的api接口,目前实现的功能有:
+
+    YDMApi.decode_by_path:普通方法识别验证码
+    YDMApi.easy_decode_by_path:简单方法识别验证码(无需实例化)
+    '''
+
+    def __init__(self, appid, appkey, username, password, dllpath='yundamaAPI-x64'):
+        '''实例化之后自动登录并获取余额'''
+        self.YDMApi = windll.LoadLibrary(dllpath)
+        self.appid = appid
+        self.appkey = appkey
+        self.username = username
+        self.password = password
+
+        # 第一步：初始化云打码，只需调用一次即可
+        self.YDMApi.YDM_SetAppInfo(self.appid, self.appkey)
+
+        # 第二步：登陆云打码账号，只需调用一次即可
+        self.uid = self.YDMApi.YDM_Login(self.username, self.password)
+
+        if self.uid > 0:
+
+            print('>>>正在获取余额...')
+            # 查询账号余额，按需要调用
+            balance = self.YDMApi.YDM_GetBalance(self.username, self.password)
+            print('登陆成功，用户名：%s，剩余题分：%d' % (username, balance))
+        else:
+            print('登录失败,错误代码%s' % self.uid)
+
+    def decode_by_path(self, codetype=1004, filename=b'getimage.jpg'):
+        print('\r\n>>>正在普通识别...')
+        # 分配30个字节存放识别结果
+        result = c_char_p(b"                              ")
+
+        captchaId = self.YDMApi.YDM_DecodeByPath(filename, codetype, result)
+        print("普通识别：验证码ID：%d，识别结果：%s" % (captchaId, result.value))
+
+        return result.value
+
+    @staticmethod
+    def easy_decode_by_path(dllpath='yundamaAPI-x64', appid=4054, appkey=b'f45e0b838d09fc42df6859cc922ae8a8',
+                            username=b'q209209a', password=b'xxxxxxxxxx', filename=b'getimage.jpg', codetype=1004,
+                            timeout=60,
+                            result=c_char_p(b"                              ")):
+        '''这个方法可以不实例化直接调用方法查询验证码'''
+        _YDMApi = windll.LoadLibrary(dllpath)
+        captchaId = _YDMApi.YDM_EasyDecodeByPath(username, password, appid, appkey, filename, codetype, timeout, result)
+        print("一键识别：验证码ID：%d，识别结果：%s" % (captchaId, result.value))
+
+
+if __name__ == '__main__':
+    ## 下面是普通方法示例
+    # appid = 4054
+    # appkey = b'f45e0b838d09fc42df6859cc922ae8a8'
+    # username = b'q209209a'
+    # password = b'xxxxxxxxxxx'
+    # dm = YDMApi(appid=appid, appkey=appkey, username=username, password=password)
+    # dm.decode_by_path(filename=b'img.jpg')
+
+    ## 下面是快捷方法示例
+    YDMApi.easy_decode_by_path()
